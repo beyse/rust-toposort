@@ -7,35 +7,42 @@ use std::hash::Hash;
 
 // trait NodeTypeTrait: Hash + Clone + Eq {}
 
+#[allow(dead_code)]
 type DependencyMap<T> = HashMap<T, Vec<T>>;
 
+#[allow(dead_code)]
 struct SortedGraph<T: Hash + Clone + Eq> {
     linear_order: Vec<T>,
     parallel_order: HashMap<usize, Vec<T>>,
 }
 
+#[allow(dead_code)]
 struct Connection<T: Hash + Clone + Eq> {
     src: T,
     dst: T,
 }
 
+#[allow(dead_code)]
 fn has_mark<T: Hash + Clone + Eq>(node: &T, marks: &HashSet<T>) -> bool {
     marks.contains(node)
 }
 
+#[allow(dead_code)]
 fn remove_mark<T: Hash + Clone + Eq>(node: &T, marks: &mut HashSet<T>) {
     marks.remove(node);
 }
 
+#[allow(dead_code)]
 fn add_mark<T: Hash + Clone + Eq>(node: &T, marks: &mut HashSet<T>) {
     marks.insert(node.clone());
 }
 
+#[allow(dead_code)]
 fn get_unmarked_node<T: Hash + Clone + Eq>(
     dependency_map: &DependencyMap<T>,
     marks: &HashSet<T>,
 ) -> Option<T> {
-    for (node, dependencies) in dependency_map {
+    for node in dependency_map.keys() {
         if !has_mark(node, marks) {
             return Some(node.clone());
         }
@@ -43,6 +50,7 @@ fn get_unmarked_node<T: Hash + Clone + Eq>(
     None
 }
 
+#[allow(dead_code)]
 fn visit<T: Hash + Clone + Eq>(
     node: &T,
     dependency_map: &DependencyMap<T>,
@@ -62,9 +70,9 @@ fn visit<T: Hash + Clone + Eq>(
 
     let dependencies = dependency_map.get(node);
 
-    if dependencies.is_some() {
+    if let Some(dependencies) = dependencies {
         // iterate over all elements in the vector dependencies
-        for dependency in dependencies.unwrap() {
+        for dependency in dependencies {
             visit(
                 dependency,
                 dependency_map,
@@ -81,6 +89,7 @@ fn visit<T: Hash + Clone + Eq>(
     sorted_list.push_front(node.clone());
 }
 
+#[allow(dead_code)]
 fn count_predecessors<T: Hash + Clone + Eq>(node: &T, predecessor_map: &DependencyMap<T>) -> usize {
     let predecessors = predecessor_map.get(node);
     if predecessors.is_none() || predecessors.unwrap().is_empty() {
@@ -97,22 +106,24 @@ fn count_predecessors<T: Hash + Clone + Eq>(node: &T, predecessor_map: &Dependen
     max_predecessors + 1
 }
 
+#[allow(dead_code)]
 fn create_predecessor_map<T: Hash + Clone + Eq>(edges: &Vec<Connection<T>>) -> DependencyMap<T> {
     let mut predecessor_map = HashMap::new();
 
     for edge in edges {
-        let predecessors = predecessor_map.entry(edge.dst.clone()).or_insert(vec![]);
+        let predecessors: &mut Vec<T> = predecessor_map.entry(edge.dst.clone()).or_default();
         predecessors.push(edge.src.clone());
     }
 
     predecessor_map
 }
 
+#[allow(dead_code)]
 fn sort_graph<T: Hash + Clone + Eq>(edges: &Vec<Connection<T>>) -> SortedGraph<T> {
     let mut dependency_map = HashMap::new();
 
     for edge in edges {
-        let dependencies = dependency_map.entry(edge.src.clone()).or_insert(vec![]);
+        let dependencies: &mut Vec<T> = dependency_map.entry(edge.src.clone()).or_default();
         dependencies.push(edge.dst.clone());
     }
 
@@ -138,7 +149,7 @@ fn sort_graph<T: Hash + Clone + Eq>(edges: &Vec<Connection<T>>) -> SortedGraph<T
     let mut parallel_order: HashMap<usize, Vec<T>> = HashMap::new();
     for node in &sorted_list {
         let predecessors = count_predecessors(node, &predecessor_map);
-        let nodes = parallel_order.entry(predecessors).or_insert(vec![]);
+        let nodes = parallel_order.entry(predecessors).or_default();
         nodes.push(node.clone());
     }
 
