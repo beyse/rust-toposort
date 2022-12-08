@@ -6,8 +6,8 @@ type NodeIdType = String; // This is not super necessary, but it explains the co
 type DependencyMap = HashMap<NodeIdType, Vec<NodeIdType>>;
 
 struct SortedGraph {
-    linearOrder: Vec<NodeIdType>,
-    parallelOrder: HashMap<usize, Vec<NodeIdType>>,
+    linear_order: Vec<NodeIdType>,
+    parallel_order: HashMap<usize, Vec<NodeIdType>>,
     dependency_map: DependencyMap,
 }
 
@@ -78,20 +78,31 @@ fn visit(
     sorted_list.push_front(node.clone());
 }
 
-fn count_predecessors(node: &NodeIdType, dependency_map: &DependencyMap) -> usize {
-    let dependencies = dependency_map.get(node);
-    if dependencies.is_none() {
+fn count_predecessors(node: &NodeIdType, predecessor_map: &DependencyMap) -> usize {
+    let predecessors = predecessor_map.get(node);
+    if predecessors.is_none() || predecessors.unwrap().is_empty() {
         return 0;
     }
 
     let mut max_predecessors = 0;
-    for dependency in dependencies.unwrap() {
-        let count = count_predecessors(dependency, dependency_map);
+    for predecessor in predecessors.unwrap() {
+        let count = count_predecessors(predecessor, predecessor_map);
         if count > max_predecessors {
             max_predecessors = count;
         }
     }
     max_predecessors + 1
+}
+
+fn create_predecessor_map(edges: &Vec<Connection>) -> DependencyMap {
+    let mut predecessor_map = HashMap::new();
+
+    for edge in edges {
+        let predecessors = predecessor_map.entry(edge.dst.clone()).or_insert(vec![]);
+        predecessors.push(edge.src.clone());
+    }
+
+    predecessor_map
 }
 
 fn sort_graph(edges: &Vec<Connection>) -> SortedGraph {
@@ -119,16 +130,18 @@ fn sort_graph(edges: &Vec<Connection>) -> SortedGraph {
         node = get_unmarked_node(&dependency_map, &permanent_marks);
     }
 
+    let predecessor_map = create_predecessor_map(edges);
+
     let mut parallel_order: HashMap<usize, Vec<NodeIdType>> = HashMap::new();
     for node in &sorted_list {
-        let predecessors = count_predecessors(&node, &dependency_map);
+        let predecessors = count_predecessors(&node, &predecessor_map);
         let nodes = parallel_order.entry(predecessors).or_insert(vec![]);
         nodes.push(node.clone());
     }
 
     SortedGraph {
-        linearOrder: sorted_list.into(),
-        parallelOrder: parallel_order,
+        linear_order: sorted_list.into(),
+        parallel_order,
         dependency_map,
     }
 }
@@ -226,14 +239,14 @@ mod test {
 
     #[test]
     fn test_count_predecessors() {
-        let mut dependency_map = HashMap::new();
-        dependency_map.insert("a".to_string(), vec!["b".to_string()]);
-        dependency_map.insert("b".to_string(), vec!["c".to_string()]);
-        dependency_map.insert("c".to_string(), vec![]);
+        let mut predecessor_map = HashMap::new();
+        predecessor_map.insert("a".to_string(), vec!["b".to_string()]);
+        predecessor_map.insert("b".to_string(), vec!["c".to_string()]);
+        predecessor_map.insert("c".to_string(), vec![]);
 
-        assert_eq!(count_predecessors(&"a".to_string(), &dependency_map), 3);
-        assert_eq!(count_predecessors(&"b".to_string(), &dependency_map), 2);
-        assert_eq!(count_predecessors(&"c".to_string(), &dependency_map), 1);
+        assert_eq!(count_predecessors(&"a".to_string(), &predecessor_map), 2);
+        assert_eq!(count_predecessors(&"b".to_string(), &predecessor_map), 1);
+        assert_eq!(count_predecessors(&"c".to_string(), &predecessor_map), 0);
     }
 
     #[test]
@@ -289,9 +302,49 @@ mod test {
         // or
         // a, c, b, d, e
 
-        assert_eq!(sorted_graph.linearOrder.len(), 5);
+        assert_eq!(sorted_graph.linear_order.len(), 5);
 
-        // Todo
+        assert_eq!(sorted_graph.linear_order[0], "a".to_string());
+        if sorted_graph.linear_order[1] == "b".to_string() {
+            assert_eq!(sorted_graph.linear_order[1], "b".to_string());
+            assert_eq!(sorted_graph.linear_order[2], "c".to_string());
+        } else {
+            assert_eq!(sorted_graph.linear_order[1], "c".to_string());
+            assert_eq!(sorted_graph.linear_order[2], "b".to_string());
+        }
+        assert_eq!(sorted_graph.linear_order[3], "d".to_string());
+        assert_eq!(sorted_graph.linear_order[4], "e".to_string());
+
+        // print length of parallel order
+        println!(
+            "parallel order length: {}",
+            sorted_graph.parallel_order.len()
+        );
+
+        // print the parallel order
+        for (key, value) in &sorted_graph.parallel_order {
+            println!("{}: {:?}", key, value);
+        }
+
+        // we expect the following parallel order:
+        // 0 -> a
+        // 1 -> c, b (or b, c)
+        // 2 -> d
+        // 3 -> e
+        assert_eq!(sorted_graph.parallel_order.len(), 4);
+        assert_eq!(sorted_graph.parallel_order[&0].len(), 1);
+        assert_eq!(sorted_graph.parallel_order[&1].len(), 2);
+        assert_eq!(sorted_graph.parallel_order[&2].len(), 1);
+        assert_eq!(sorted_graph.parallel_order[&3].len(), 1);
+
+        assert!(sorted_graph.parallel_order[&0].contains(&"a".to_string()));
+
+        assert!(sorted_graph.parallel_order[&1].contains(&"c".to_string()));
+        assert!(sorted_graph.parallel_order[&1].contains(&"b".to_string()));
+
+        assert!(sorted_graph.parallel_order[&2].contains(&"d".to_string()));
+
+        assert!(sorted_graph.parallel_order[&3].contains(&"e".to_string()));
     }
 }
 
