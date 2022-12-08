@@ -1,37 +1,40 @@
+use std::clone::Clone;
+use std::cmp::Eq;
 use std::collections::HashMap;
 use std::collections::HashSet;
 use std::collections::VecDeque;
+use std::hash::Hash;
 
-type NodeIdType = String; // This is not super necessary, but it explains the code better.
-type DependencyMap = HashMap<NodeIdType, Vec<NodeIdType>>;
+// trait NodeTypeTrait: Hash + Clone + Eq {}
 
-struct SortedGraph {
-    linear_order: Vec<NodeIdType>,
-    parallel_order: HashMap<usize, Vec<NodeIdType>>,
-    dependency_map: DependencyMap,
+type DependencyMap<T> = HashMap<T, Vec<T>>;
+
+struct SortedGraph<T: Hash + Clone + Eq> {
+    linear_order: Vec<T>,
+    parallel_order: HashMap<usize, Vec<T>>,
 }
 
-struct Connection {
-    src: NodeIdType,
-    dst: NodeIdType,
+struct Connection<T: Hash + Clone + Eq> {
+    src: T,
+    dst: T,
 }
 
-fn has_mark(node: &NodeIdType, marks: &HashSet<NodeIdType>) -> bool {
+fn has_mark<T: Hash + Clone + Eq>(node: &T, marks: &HashSet<T>) -> bool {
     marks.contains(node)
 }
 
-fn remove_mark(node: &NodeIdType, marks: &mut HashSet<NodeIdType>) {
+fn remove_mark<T: Hash + Clone + Eq>(node: &T, marks: &mut HashSet<T>) {
     marks.remove(node);
 }
 
-fn add_mark(node: &NodeIdType, marks: &mut HashSet<NodeIdType>) {
+fn add_mark<T: Hash + Clone + Eq>(node: &T, marks: &mut HashSet<T>) {
     marks.insert(node.clone());
 }
 
-fn get_unmarked_node(
-    dependency_map: &DependencyMap,
-    marks: &HashSet<NodeIdType>,
-) -> Option<NodeIdType> {
+fn get_unmarked_node<T: Hash + Clone + Eq>(
+    dependency_map: &DependencyMap<T>,
+    marks: &HashSet<T>,
+) -> Option<T> {
     for (node, dependencies) in dependency_map {
         if !has_mark(node, marks) {
             return Some(node.clone());
@@ -40,12 +43,12 @@ fn get_unmarked_node(
     None
 }
 
-fn visit(
-    node: &NodeIdType,
-    dependency_map: &DependencyMap,
-    permanent_marks: &mut HashSet<NodeIdType>,
-    temporary_marks: &mut HashSet<NodeIdType>,
-    sorted_list: &mut VecDeque<NodeIdType>,
+fn visit<T: Hash + Clone + Eq>(
+    node: &T,
+    dependency_map: &DependencyMap<T>,
+    permanent_marks: &mut HashSet<T>,
+    temporary_marks: &mut HashSet<T>,
+    sorted_list: &mut VecDeque<T>,
 ) {
     if has_mark(node, permanent_marks) {
         return;
@@ -78,7 +81,7 @@ fn visit(
     sorted_list.push_front(node.clone());
 }
 
-fn count_predecessors(node: &NodeIdType, predecessor_map: &DependencyMap) -> usize {
+fn count_predecessors<T: Hash + Clone + Eq>(node: &T, predecessor_map: &DependencyMap<T>) -> usize {
     let predecessors = predecessor_map.get(node);
     if predecessors.is_none() || predecessors.unwrap().is_empty() {
         return 0;
@@ -94,7 +97,7 @@ fn count_predecessors(node: &NodeIdType, predecessor_map: &DependencyMap) -> usi
     max_predecessors + 1
 }
 
-fn create_predecessor_map(edges: &Vec<Connection>) -> DependencyMap {
+fn create_predecessor_map<T: Hash + Clone + Eq>(edges: &Vec<Connection<T>>) -> DependencyMap<T> {
     let mut predecessor_map = HashMap::new();
 
     for edge in edges {
@@ -105,7 +108,7 @@ fn create_predecessor_map(edges: &Vec<Connection>) -> DependencyMap {
     predecessor_map
 }
 
-fn sort_graph(edges: &Vec<Connection>) -> SortedGraph {
+fn sort_graph<T: Hash + Clone + Eq>(edges: &Vec<Connection<T>>) -> SortedGraph<T> {
     let mut dependency_map = HashMap::new();
 
     for edge in edges {
@@ -132,9 +135,9 @@ fn sort_graph(edges: &Vec<Connection>) -> SortedGraph {
 
     let predecessor_map = create_predecessor_map(edges);
 
-    let mut parallel_order: HashMap<usize, Vec<NodeIdType>> = HashMap::new();
+    let mut parallel_order: HashMap<usize, Vec<T>> = HashMap::new();
     for node in &sorted_list {
-        let predecessors = count_predecessors(&node, &predecessor_map);
+        let predecessors = count_predecessors(node, &predecessor_map);
         let nodes = parallel_order.entry(predecessors).or_insert(vec![]);
         nodes.push(node.clone());
     }
@@ -142,7 +145,6 @@ fn sort_graph(edges: &Vec<Connection>) -> SortedGraph {
     SortedGraph {
         linear_order: sorted_list.into(),
         parallel_order,
-        dependency_map,
     }
 }
 
