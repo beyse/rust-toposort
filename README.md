@@ -4,6 +4,30 @@
 
 An implementation of topological sorting using DFS (depth-first search)
 
+## Compile
+
+```bash
+cargo build
+```
+
+
+## Test
+
+We use [cargo-nextest](https://nexte.st/index.html) for testing.
+
+Install cargo-nextest:
+
+```bash
+cargo install cargo-binstall
+cargo binstall cargo-nextest --secure
+```
+
+Run tests:
+
+```bash
+cargo nextest run
+```
+
 ## About
 
 > **Warning**
