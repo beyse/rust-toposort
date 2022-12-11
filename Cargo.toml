@@ -5,4 +5,15 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-[dependencies]
+[[test]]
+name = "test_marking"
+path = "src/toposort/marking.rs"
+
+[[test]]
+name = "test_predecessors"
+path = "src/toposort/predecessors.rs"
+
+[[test]]
+name = "test_visit"
+path = "src/toposort/visit.rs"
+
