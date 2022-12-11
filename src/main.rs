@@ -8,11 +8,17 @@ use std::hash::Hash;
 // trait NodeTypeTrait: Hash + Clone + Eq {}
 
 #[allow(dead_code)]
+/// The dependency map is a map from a node to a vector of nodes.
+/// It can model either predecessors or successors.
 type DependencyMap<T> = HashMap<T, Vec<T>>;
 
 #[allow(dead_code)]
+/// The sorted graph structure contains the execution order of the graph.
 struct SortedGraph<T: Hash + Clone + Eq> {
+    /// The linear order can be used to execute the graph in a linear fashion.
     linear_order: Vec<T>,
+    /// The parallel order can be used to execute the graph in parallel.
+    /// It contains the nodes that may be executed in parallel.
     parallel_order: HashMap<usize, Vec<T>>,
 }
 
@@ -107,6 +113,10 @@ fn count_predecessors<T: Hash + Clone + Eq>(node: &T, predecessor_map: &Dependen
 }
 
 #[allow(dead_code)]
+/// Creates a map of predecessors for the given edges.
+///
+/// This function takes a vector of `Connection` values and returns a `DependencyMap`
+/// that maps each node in the connections to a vector of its predecessors.
 fn create_predecessor_map<T: Hash + Clone + Eq>(edges: &Vec<Connection<T>>) -> DependencyMap<T> {
     let mut predecessor_map = HashMap::new();
 
@@ -350,13 +360,15 @@ mod test {
         assert_eq!(sorted_graph.parallel_order[&2].len(), 1);
         assert_eq!(sorted_graph.parallel_order[&3].len(), 1);
 
+        // first a must be processed.
         assert!(sorted_graph.parallel_order[&0].contains(&"a".to_string()));
 
+        // then c and b can be processed in parallel.
         assert!(sorted_graph.parallel_order[&1].contains(&"c".to_string()));
         assert!(sorted_graph.parallel_order[&1].contains(&"b".to_string()));
 
+        // next d and e must be processed sequentially.
         assert!(sorted_graph.parallel_order[&2].contains(&"d".to_string()));
-
         assert!(sorted_graph.parallel_order[&3].contains(&"e".to_string()));
     }
 }
